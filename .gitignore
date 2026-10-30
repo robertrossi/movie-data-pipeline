@@ -1,0 +1,16 @@
+﻿# Ambiente virtual
+.venv/
+
+# Cache do Python
+__pycache__/
+*.py[cod]
+
+# Banco DuckDB
+*.duckdb
+
+# Dados brutos do dataset
+raw/
+
+# Cache de ferramentas
+.pytest_cache/
+.ruff_cache/
