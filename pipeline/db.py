@@ -17,13 +17,27 @@ import duckdb
 
 PASTA_RAW = Path(__file__).resolve().parent.parent / "raw"
 _ARQUIVO_BANCO = Path(__file__).resolve().parent.parent / "movie_data.duckdb"
+_ARQUIVO_SNAPSHOT_CLOUD = (
+    Path(__file__).resolve().parent.parent / "data" / "movie_data_snapshot.duckdb"
+)
+
+
+def _esta_no_streamlit_cloud() -> bool:
+    """Identifica o contêiner Linux usado pelo Streamlit Community Cloud."""
+    return Path("/mount/src").is_dir()
 
 
 def _caminho_banco() -> Path:
-    """Retorna o caminho configurado ou o banco padrão ancorado no projeto."""
+    """Retorna o banco configurado ou o padrão do ambiente atual.
+
+    O caminho explícito continua tendo prioridade. No Community Cloud, o padrão
+    é o snapshot versionado; localmente, permanece o banco original do projeto.
+    """
     configurado = os.environ.get("MOVIE_DATA_DB_PATH")
     if configurado and configurado.strip():
         return Path(configurado).expanduser()
+    if _esta_no_streamlit_cloud():
+        return _ARQUIVO_SNAPSHOT_CLOUD
     return _ARQUIVO_BANCO
 
 
