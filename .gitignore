@@ -15,3 +15,7 @@ raw/
 .pytest_cache/
 .ruff_cache/
 .codex/
+
+# Cobertura de testes
+.coverage
+.coverage.*

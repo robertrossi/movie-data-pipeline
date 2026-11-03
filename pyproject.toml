@@ -5,12 +5,14 @@ requires-python = ">=3.13"
 dependencies = [
     "duckdb>=2.0.0",
     "pandas>=3.1.0",
+    "plotly",
     "streamlit>=1.66.1",
 ]
 
 [dependency-groups]
 dev = [
     "pytest>=9.2.0",
+    "pytest-cov>=7.1.0",
     "ruff>=0.17.3",
 ]
 
@@ -20,3 +22,13 @@ line-length = 88
 
 [tool.ruff.lint]
 select = ["E4", "E7", "E9", "F", "I", "BLE"]
+
+[tool.pytest.ini_options]
+addopts = "--cov --cov-report=term-missing"
+pythonpath = ["."]
+
+[tool.coverage.run]
+source = ["pipeline", "painel", "relatorio"]
+
+[tool.coverage.report]
+show_missing = true

@@ -2,7 +2,7 @@
 
 ## Critério de leitura
 
-Este documento registra os dez indicadores selecionados e explorados para o Cinema Analytics Pipeline.
+Este documento registra os dez indicadores inicialmente selecionados e explorados para o Cinema Analytics Pipeline, além do indicador 11 especificado nesta etapa.
 
 A classificação utiliza a nomenclatura **Dá**, **Dá, mas...** e **Não dá**. Neste documento, os indicadores foram considerados viáveis, mas apresentam ressalvas relacionadas à cobertura, representatividade, granularidade ou interpretação dos dados.
 
@@ -182,10 +182,11 @@ As evidências foram obtidas por consultas exploratórias executadas manualmente
 | 8 | Most Active Users | MovieLens |
 | 9 | Ratings per User Distribution | MovieLens |
 | 10 | Average MovieLens Rating by Genre | MovieLens + TMDB |
+| 11 | Most Rated Movies by Year | MovieLens + TMDB |
 
 ## Observações sobre o escopo
 
-Os dez indicadores foram explorados manualmente no DuckDB. Os resultados e regras aqui registrados servem como base para a especificação da camada analítica.
+Os indicadores 1–10 foram explorados manualmente no DuckDB. O indicador 11 formaliza o ranking anual a partir das mesmas fontes MovieLens e TMDB; seus volumes de produção foram conferidos por consultas somente leitura antes da publicação.
 
 A aprovação dos indicadores não significa que todas as etapas do pipeline estejam integralmente validadas. Permanecem fora do escopo desta exploração, entre outras atividades:
 
@@ -196,3 +197,15 @@ A aprovação dos indicadores não significa que todas as etapas do pipeline est
 - Implementação e validação do dashboard.
 
 Essas atividades serão conduzidas nas próximas etapas do projeto.
+
+## 11. Filmes com maior número de avaliações MovieLens por ano
+
+- **Nome:** Most Rated Movies by Year (MovieLens).
+- **Objetivo de negócio:** Comparar, em cada ano, os filmes que concentraram mais avaliações submetidas na base MovieLens.
+- **Fontes:** `refined.avaliacoes` (`movieId`, `rating`, `timestamp`), `refined.links` (`movieId`, `tmdbId`) e `refined.filmes` (`id`, `title`).
+- **Relacionamentos:** Agregar as avaliações antes de relacionar `movieId` a `links.movieId` e `links.tmdbId` a `filmes.id`. As junções são `LEFT JOIN`; ausência de vínculo ou metadado não elimina o par ano/filme.
+- **Grão:** Uma linha por combinação de ano UTC de avaliação e `movieId` MovieLens. O mesmo filme aparece em anos distintos quando recebe avaliações em anos distintos. `tmdbId` e título são atributos descritivos e não definem o grão.
+- **Colunas:** `ano_avaliacao` é o ano UTC extraído do timestamp Unix; `movieId` identifica o filme na base MovieLens; `tmdbId` e `titulo` vêm dos metadados TMDB e podem ser nulos; `total_avaliacoes` conta os ratings do par ano/filme; `nota_media_movielens` é a média aritmética dos ratings MovieLens do par, sem arredondamento na MART; `ranking` é a posição anual.
+- **Regra de cálculo:** Converter `timestamp` com `TO_TIMESTAMP(timestamp) AT TIME ZONE 'UTC'`, agrupar por ano e `movieId`, contar as avaliações e calcular `AVG(rating)`. O ranking usa `ROW_NUMBER()` particionado por ano, por `total_avaliacoes` decrescente e `movieId` crescente como desempate determinístico.
+- **Escopo:** A MART contém todos os pares filme/ano com avaliações, e não somente o Top 20. A interface pode aplicar um corte para apresentação sem perder a posição relativa ou o histórico completo.
+- **Limitações:** O volume mede avaliações MovieLens submetidas em cada ano UTC; não é o ano de lançamento, a popularidade mundial ou uma medida de qualidade. A média reflete os ratings observados naquele par e pode ter amostras pequenas. IDs sem correspondência TMDB continuam na MART com metadados nulos. Diferentes `movieId`s permanecem separados mesmo que apontem ao mesmo `tmdbId`.

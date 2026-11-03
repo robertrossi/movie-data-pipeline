@@ -17,14 +17,19 @@ PASTA_RAW = Path(__file__).resolve().parent.parent / "raw"
 _ARQUIVO_BANCO = Path(__file__).resolve().parent.parent / "movie_data.duckdb"
 
 
-def conectar(*, must_exist=False):
-    """Abre o banco configurado; opcionalmente falha se o arquivo não existir.
+def conectar(*, must_exist=False, read_only=False):
+    """Abre o banco configurado; pode exigir existência e acesso somente leitura.
 
     ``must_exist=True`` impede que uma execução destinada a atualizar dados
     crie silenciosamente um banco vazio por erro de caminho ou arquivo ausente.
+    ``read_only=True`` abre o arquivo sem permitir alterações. Nesse modo, a
+    existência do banco também é obrigatória, para evitar a criação acidental
+    de um arquivo vazio para consultas.
     """
-    if must_exist and not _ARQUIVO_BANCO.is_file():
+    if (must_exist or read_only) and not _ARQUIVO_BANCO.is_file():
         raise FileNotFoundError(f"Banco DuckDB não encontrado: {_ARQUIVO_BANCO}")
+    if read_only:
+        return duckdb.connect(str(_ARQUIVO_BANCO), read_only=True)
     return duckdb.connect(str(_ARQUIVO_BANCO))
 
 
