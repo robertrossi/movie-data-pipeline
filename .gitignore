@@ -20,3 +20,6 @@ raw/
 # Cobertura de testes
 .coverage
 .coverage.*
+
+# MkDocs generated site
+/site/
