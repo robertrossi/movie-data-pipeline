@@ -7,6 +7,7 @@ __pycache__/
 
 # Banco DuckDB
 *.duckdb
+!data/movie_data_snapshot.duckdb
 
 # Dados brutos do dataset
 raw/

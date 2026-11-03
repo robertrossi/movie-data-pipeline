@@ -19,8 +19,10 @@ def test_conexao_padrao_cria_e_permite_escrita_em_banco_temporario(
 ):
     database = tmp_path / "padrao.duckdb"
     monkeypatch.setattr(db, "_ARQUIVO_BANCO", database)
+    monkeypatch.setattr(db, "_esta_no_streamlit_cloud", lambda: False)
     monkeypatch.delenv("MOVIE_DATA_DB_PATH", raising=False)
 
+    assert db._caminho_banco() == database
     con = db.conectar()
     try:
         con.execute("CREATE TABLE amostra AS SELECT 42 AS valor")
@@ -45,6 +47,39 @@ def test_variavel_de_ambiente_seleciona_banco_alternativo_somente_leitura(
             con.execute("CREATE TABLE bloqueada AS SELECT 1")
     finally:
         con.close()
+
+
+def test_streamlit_cloud_seleciona_snapshot_versionado_em_read_only(
+    tmp_path, monkeypatch
+):
+    snapshot = tmp_path / "data" / "movie_data_snapshot.duckdb"
+    snapshot.parent.mkdir()
+    _create_database(snapshot)
+    monkeypatch.setattr(db, "_ARQUIVO_SNAPSHOT_CLOUD", snapshot)
+    monkeypatch.setattr(db, "_esta_no_streamlit_cloud", lambda: True)
+    monkeypatch.delenv("MOVIE_DATA_DB_PATH", raising=False)
+
+    assert db._caminho_banco() == snapshot
+    con = db.conectar(must_exist=True, read_only=True)
+    try:
+        assert con.execute("SELECT valor FROM amostra").fetchone() == (42,)
+        with pytest.raises(duckdb.Error):
+            con.execute("CREATE TABLE bloqueada AS SELECT 1")
+    finally:
+        con.close()
+
+
+def test_streamlit_cloud_informa_caminho_quando_snapshot_ausente(tmp_path, monkeypatch):
+    snapshot = tmp_path / "data" / "movie_data_snapshot.duckdb"
+    monkeypatch.setattr(db, "_ARQUIVO_SNAPSHOT_CLOUD", snapshot)
+    monkeypatch.setattr(db, "_esta_no_streamlit_cloud", lambda: True)
+    monkeypatch.delenv("MOVIE_DATA_DB_PATH", raising=False)
+
+    with pytest.raises(FileNotFoundError, match="Banco DuckDB não encontrado") as erro:
+        db.conectar(must_exist=True, read_only=True)
+
+    assert str(snapshot) in str(erro.value)
+    assert not snapshot.exists()
 
 
 def test_must_exist_recusa_banco_inexistente(tmp_path, monkeypatch):

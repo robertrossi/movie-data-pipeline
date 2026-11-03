@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-import os
 from collections.abc import Callable
 from typing import Any
 
@@ -11,7 +10,7 @@ import pandas as pd
 import streamlit as st
 
 import painel
-from pipeline import db, snapshot
+from pipeline import db
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -25,14 +24,6 @@ st.set_page_config(
 def _preparar_banco_dashboard() -> None:
     """Seleciona e verifica o banco antes de executar consultas das abas."""
     try:
-        if snapshot.snapshot_configurado():
-            caminho_snapshot = snapshot.provisionar_snapshot()
-            if caminho_snapshot is None:
-                raise snapshot.SnapshotError(
-                    "A configuração do snapshot não produziu um arquivo."
-                )
-            os.environ["MOVIE_DATA_DB_PATH"] = str(caminho_snapshot)
-
         conexao = db.conectar(must_exist=True, read_only=True)
         conexao.close()
     except Exception as erro:  # noqa: BLE001
