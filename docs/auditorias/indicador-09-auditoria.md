@@ -1,97 +1,39 @@
 # Auditoria metodológica — Indicador 09
 
 **Indicador:** distribuição de usuários por quantidade de avaliações<br>
-**SQL auditado:** `sql/marts/09_distribuicao_avaliacoes_por_usuario.sql`<br>
-**Tabela comparada:** `marts.distribuicao_avaliacoes_por_usuario`<br>
-**Parecer:** **APROVADO COM RESSALVAS**
+**SQL:** `sql/marts/09_distribuicao_avaliacoes_por_usuario.sql`<br>
+**MART:** `marts.distribuicao_avaliacoes_por_usuario`<br>
+**Data da revisão e publicação seletiva:** 3 de novembro de 2026<br>
+**Parecer:** **APROVADO**
 
-## Pergunta, grão e metodologia
+## Pergunta, grão e regra de negócio
 
-A pergunta é como os usuários se distribuem por faixas de quantidade de avaliações. A primeira CTE agrega `refined.avaliacoes` por `userId`, produzindo uma linha por usuário com seu volume. A segunda atribui cada usuário a uma única faixa. O resultado final tem uma linha por faixa, conta usuários e calcula seu percentual sobre todos os usuários classificados. Não há JOINs.
+A pergunta é como os usuários se distribuem por faixas de quantidade acumulada de avaliações. `avaliacoes_por_usuario` agrega a tabela `refined.avaliacoes` por `userId`, produzindo uma linha por usuário. `usuarios_classificados` atribui a cada linha exatamente uma faixa conforme `indicadores.md`: `1`, `2-10`, `11-30`, `31-100`, `101-500`, `501-1000` e `>1000`.
 
-As faixas codificadas são 1–10, 11–50, 51–100, 101–500, 501–1.000, 1.001–5.000, 5.001–10.000 e `ELSE '10000+'`. Como cada usuário surge de pelo menos uma linha agrupada, seu volume é >= 1; `ELSE` representa volumes acima de 10.000 na implementação atual.
+As faixas são disjuntas e cobrem todos os inteiros positivos: 1; 2–10; 11–30; 31–100; 101–500; 501–1.000; e todo valor maior que 1.000. Como cada usuário agrupado tem pelo menos uma avaliação, nenhum volume fica sem faixa. O percentual de cada categoria usa o total de usuários classificados como denominador e é arredondado a duas casas somente depois do cálculo.
 
-## Consultas executadas e resultados
+## Distribuição recalculada
 
-### Recálculo e comparação com a mart
+Consulta somente leitura executada sobre `refined.avaliacoes`, com as faixas da definição oficial:
 
-```sql
-WITH apu AS (
-  SELECT userId, COUNT(*) AS total_avaliacoes
-  FROM refined.avaliacoes GROUP BY userId
-), uc AS (
-  SELECT userId, total_avaliacoes,
-    CASE
-      WHEN total_avaliacoes BETWEEN 1 AND 10 THEN '01-10'
-      WHEN total_avaliacoes BETWEEN 11 AND 50 THEN '11-50'
-      WHEN total_avaliacoes BETWEEN 51 AND 100 THEN '51-100'
-      WHEN total_avaliacoes BETWEEN 101 AND 500 THEN '101-500'
-      WHEN total_avaliacoes BETWEEN 501 AND 1000 THEN '501-1000'
-      WHEN total_avaliacoes BETWEEN 1001 AND 5000 THEN '1001-5000'
-      WHEN total_avaliacoes BETWEEN 5001 AND 10000 THEN '5001-10000'
-      ELSE '10000+'
-    END AS faixa_avaliacoes
-  FROM apu
-), esperado AS (
-  SELECT faixa_avaliacoes, COUNT(*) AS total_usuarios,
-    ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER (), 2) AS percentual_usuarios
-  FROM uc GROUP BY faixa_avaliacoes
-), diferencas AS (
-  (SELECT * FROM esperado EXCEPT ALL
-   SELECT * FROM marts.distribuicao_avaliacoes_por_usuario)
-  UNION ALL
-  (SELECT * FROM marts.distribuicao_avaliacoes_por_usuario EXCEPT ALL
-   SELECT * FROM esperado)
-)
-SELECT (SELECT COUNT(*) FROM esperado) AS faixas_esperadas,
-  (SELECT COUNT(*) FROM marts.distribuicao_avaliacoes_por_usuario) AS faixas_mart,
-  (SELECT COUNT(*) FROM diferencas) AS diferencas,
-  (SELECT COUNT(*) FROM apu) AS total_usuarios,
-  (SELECT SUM(total_usuarios) FROM marts.distribuicao_avaliacoes_por_usuario)
-    AS usuarios_na_mart,
-  (SELECT SUM(percentual_usuarios) FROM marts.distribuicao_avaliacoes_por_usuario)
-    AS soma_percentuais;
-```
+| Faixa | Usuários | Percentual | Mínimo observado | Máximo observado |
+|---|---:|---:|---:|---:|
+| 1 | 5.084 | 1,88% | 1 | 1 |
+| 2-10 | 38.704 | 14,29% | 2 | 10 |
+| 11-30 | 93.016 | 34,34% | 11 | 30 |
+| 31-100 | 70.515 | 26,03% | 31 | 100 |
+| 101-500 | 54.125 | 19,98% | 101 | 500 |
+| 501-1000 | 6.950 | 2,57% | 501 | 1.000 |
+| >1000 | 2.502 | 0,92% | 1.001 | 18.276 |
+| **Total** | **270.896** | **100,01%** | **1** | **18.276** |
 
-**Resultado:** 8 faixas esperadas e 8 na mart; **0 diferenças**; **270.896** usuários classificados e somados; percentuais materializados somam **99,99000000000001%** (99,99% após arredondamento exibido).
+O total percentual exibido é 100,01% porque cada percentual é arredondado individualmente a duas casas; antes do arredondamento, as participações usam o mesmo denominador de 270.896 usuários. Portanto, a soma apresentada não representa usuários extras nem erro de denominador.
 
-### Cobertura e extremos dos volumes
+## Comparação com a distribuição anterior
 
-Consulta executada sobre `apu` e a mesma expressão `CASE` das faixas:
+A distribuição anterior foi calculada com faixas diferentes e estava na MART antes da publicação seletiva de 3 de novembro de 2026. A tabela abaixo preserva o registro histórico da versão anterior; ela não representa o estado atual da MART:
 
-```sql
-WITH apu AS (
-  SELECT userId, COUNT(*) AS n FROM refined.avaliacoes GROUP BY userId
-), bandas AS (
-  SELECT *, CASE
-    WHEN n BETWEEN 1 AND 10 THEN '01-10'
-    WHEN n BETWEEN 11 AND 50 THEN '11-50'
-    WHEN n BETWEEN 51 AND 100 THEN '51-100'
-    WHEN n BETWEEN 101 AND 500 THEN '101-500'
-    WHEN n BETWEEN 501 AND 1000 THEN '501-1000'
-    WHEN n BETWEEN 1001 AND 5000 THEN '1001-5000'
-    WHEN n BETWEEN 5001 AND 10000 THEN '5001-10000'
-    ELSE '10000+' END AS faixa
-  FROM apu
-)
-SELECT COUNT(*) AS usuarios,
-  COUNT(*) FILTER (WHERE userId IS NULL) AS userId_nulo,
-  MIN(n) AS minimo_avaliacoes_usuario,
-  MAX(n) AS maximo_avaliacoes_usuario,
-  COUNT(*) FILTER (WHERE faixa IS NULL) AS sem_faixa,
-  COUNT(DISTINCT faixa) AS faixas
-FROM bandas;
-```
-
-**Resultado:** 270.896 usuários; 0 `userId` nulo; volumes mínimo e máximo 1 e 18.276; 0 sem faixa; 8 faixas observadas.
-
-Verificaram-se também os volumes nos limites das faixas por usuário. Contagens nos valores 10, 11, 50, 51, 100, 101, 500, 501, 1.000, 1.001, 5.000, 5.001, 10.000 e acima de 10.000: **6.795; 4.412; 1.460; 1.267; 856; 689; 64; 41; 7; 6; 0; 0; 0; 1**, respectivamente. Assim, não há usuários com exatamente 5.000, 5.001, 10.000 nem acima de 10.000, exceto um acima do limite, com máximo geral 18.276.
-
-### Resultado materializado
-
-Consulta executada sobre `marts.distribuicao_avaliacoes_por_usuario`, ordenada pela ordem definida das faixas:
-
-| Faixa | Usuários | Percentual |
+| Faixa anterior | Usuários | Percentual anterior |
 |---|---:|---:|
 | 01-10 | 43.788 | 16,16% |
 | 11-50 | 124.729 | 46,04% |
@@ -101,16 +43,35 @@ Consulta executada sobre `marts.distribuicao_avaliacoes_por_usuario`, ordenada p
 | 1001-5000 | 2.488 | 0,92% |
 | 5001-10000 | 13 | 0,00% |
 | 10000+ | 1 | 0,00% |
+| **Total** | **270.896** | **99,99%** |
 
-## Avaliação metodológica e limitações
+As mudanças são redistribuições por limites de faixa, não mudanças na população. Por exemplo, a faixa anterior `01-10` passa a ser dividida em 5.084 usuários com uma avaliação e 38.704 com 2–10. A faixa `>1000` reúne os 2.488 usuários antes em `1001-5000`, os 13 antes em `5001-10000` e o usuário acima de 10.000.
 
-- Cada usuário agregado é atribuído a uma única faixa; as faixas cobrem todos os volumes observados, de 1 a 18.276. Não há JOINs que alterem a cardinalidade.
-- A proporção usa o total de usuários, não o total de avaliações, coerente com a pergunta sobre distribuição de usuários.
-- O rótulo `10000+` tem uma ambiguidade de fronteira: o `CASE` anterior inclui 10.000 em `5001-10000`, então `10000+` significa estritamente acima de 10.000. Não há usuário com exatamente 10.000 no conjunto auditado, mas a definição do rótulo deve permanecer documentada ou ser clarificada se a população mudar.
-- As duas faixas menores têm contagens positivas (13 e 1), mas exibem `0,00%` por arredondamento a duas casas. Isso pode ocultar visualmente uma proporção pequena; as contagens continuam corretas. As percentagens somam 99,99% por arredondamento.
-- O indicador mede volume acumulado, não recência, duração de participação ou intensidade por período.
-- A mart corresponde exatamente ao recálculo.
+## Validações de população e classificação
+
+Consultas `SELECT` confirmaram:
+
+- **270.896** usuários na agregação e **270.896** usuários somados nas novas faixas;
+- **0** avaliações com `userId` nulo;
+- **0** usuários sem faixa;
+- **0** usuários classificados em quantidade diferente de uma faixa;
+- mínimo de **1** e máximo de **18.276** avaliações por usuário;
+- percentuais recalculados pela expressão `ROUND(total_usuarios * 100.0 / total_usuarios_geral, 2)`.
+
+Antes da republicação, a consulta esperada tinha 7 linhas enquanto a MART antiga tinha 8. Naquela comparação, `EXCEPT ALL` encontrou **5 linhas em referência → MART** e **6 em MART → referência**. Esse resultado descreve somente o estado pré-publicação; a validação após a publicação está registrada a seguir.
+
+### Publicação seletiva e validação pós-publicação
+
+Em 3 de novembro de 2026, foi executado `python -m pipeline.marts --only 09`. O executor atualizou exclusivamente `marts.distribuicao_avaliacoes_por_usuario`; não executou `DROP SCHEMA` e preservou as outras nove MARTs. A MART publicada tem **7 linhas**, soma **270.896 usuários** e soma **100,01%** após arredondamento individual. Consulta e MART foram comparadas usando `EXCEPT ALL` nos dois sentidos: **0 diferenças em referência → MART** e **0 diferenças em MART → referência**.
+
+O inventário posterior confirmou as dez MARTs presentes. As outras nove mantiveram as contagens previamente auditadas: 17, 20, 20, 10, 23, 23, 20, 20 e 20 linhas, conforme seus indicadores.
+
+## Avaliação metodológica
+
+A divergência confirmada entre a lista de faixas de `indicadores.md` e a versão anterior do SQL foi corrigida no SQL para obedecer à definição oficial. Não foram alterados população, grão, medida ou denominador. O indicador continua medindo volume acumulado por usuário, não recência, duração de participação ou intensidade por período.
+
+A soma das porcentagens arredondadas pode variar de 100% por arredondamento individual. Nesta distribuição corrigida soma 100,01%; na anterior, 99,99%. As contagens devem ser apresentadas junto dos percentuais.
 
 ## Parecer
 
-**APROVADO COM RESSALVAS.** A classificação em faixas, a contagem de usuários, o denominador percentual e a mart estão consistentes. Recomenda-se documentar que `10000+` significa `>10000` nesta implementação e considerar a apresentação de precisão suficiente para não exibir 0,00% quando há usuários na faixa.
+**APROVADO.** O SQL implementa as sete faixas oficiais, classifica exatamente uma vez cada um dos 270.896 usuários, calcula percentuais corretos sobre a população total e coincide exatamente com a MART publicada: ambas as direções de `EXCEPT ALL` retornaram zero diferenças. A soma de 100,01% decorre do arredondamento individual. As outras nove MARTs foram preservadas.

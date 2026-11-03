@@ -11,6 +11,8 @@ A consulta responde quantos registros de filme em `refined.filmes` têm `release
 
 O SQL exclui datas nulas e filtra o intervalo semiaberto `[2000-01-01, 2017-01-01)`, que inclui todos os dias de 2000 a 2016 sem incluir 2017. `COUNT(*)` conta cada filme elegível uma vez. Foram comparados os resultados recalculados da fonte com a tabela materializada usando `EXCEPT ALL` nas duas direções.
 
+O critério atual não exige `status = 'Released'`: a inclusão é determinada pela presença de `release_date` no intervalo. Entre os 23.442 registros do período, 23.189 têm status `Released` e 253 têm outro status ou status nulo. Essa decisão acompanha a regra de cálculo documentada; status não é filtro do SQL.
+
 ## Consultas executadas e evidências
 
 ### Consistência com a tabela materializada
@@ -78,6 +80,7 @@ FROM marts.filmes_lancados_por_ano ORDER BY release_year;
 - A chave `refined.filmes.id` está completa e sem duplicidade segundo a consulta executada (`COUNT(*) = COUNT(id) = COUNT(DISTINCT id)`), portanto `COUNT(*)` não duplica filmes por chave.
 - Não há JOINs, agregações incompatíveis ou valores inválidos envolvidos no cálculo além da exclusão explícita de `release_date IS NULL`.
 - As 87 datas nulas são excluídas. O período também é intencionalmente limitado a 2000–2016; 21.891 registros com data fora dele não pertencem ao indicador.
+- O intervalo é semiaberto `[2000-01-01, 2017-01-01)`. Não se exige `status = 'Released'`; os 253 registros do período com status diferente ou nulo permanecem incluídos porque têm data válida. A cobertura após 2016 é baixa: 532 registros em 2017, 5 em 2018 e 1 em 2020; a série não deve ser extrapolada como tendência de produção.
 - A consulta conta filmes no catálogo TMDB com data elegível, independentemente de haver avaliação MovieLens. Isso é coerente com a pergunta de lançamentos e não mede popularidade, cobertura MovieLens ou filmes únicos após deduplicação externa ao `id`.
 - A comparação integral confirma que a tabela materializada corresponde à consulta atual.
 

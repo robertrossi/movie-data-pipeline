@@ -11,6 +11,8 @@ A pergunta é quantos votos TMDB os filmes acumulam em cada gênero. A origem é
 
 Não há JOINs nem ponderação: `vote_count` já representa o total de votos TMDB no filme. Filmes multigênero contribuem com todos os seus votos em cada gênero correspondente. Assim, tanto `total_filmes` quanto `total_votos_tmdb` não são aditivos entre gêneros.
 
+O filtro `vote_count IS NOT NULL` inclui os 2.895 filmes com `vote_count = 0` e exclui os três filmes com contagem nula. Zero representa uma contagem observada de nenhum voto, não ausência de dado. A média/volume é calculada sobre o catálogo TMDB e os gêneros extraíveis; não usa ratings MovieLens.
+
 ## Consultas executadas e resultados
 
 ### Recálculo e comparação com a tabela materializada
@@ -118,6 +120,8 @@ Consulta executada: `SELECT genero, total_filmes, total_votos_tmdb FROM marts.qu
 Consulta de totais da mart: `SELECT COUNT(*) AS generos, SUM(total_filmes) AS soma_filmes_por_genero, SUM(total_votos_tmdb) AS soma_votos_por_genero, MIN(total_votos_tmdb) AS min_votos_genero, MAX(total_votos_tmdb) AS max_votos_genero FROM marts.quantidade_votos_tmdb_por_genero;`.
 
 Resultado: 20 gêneros; soma de filmes por gênero **90.967**; soma de votos por gênero **13.698.014**; menor total por gênero **12.900** e maior **1.954.388**. A soma de votos por gênero supera os 4.993.591 votos somados uma vez por filme porque filmes multigênero aparecem em vários grupos; isso é esperado e não é erro de agregação.
+
+A revisão independente confirmou 90.967 pares únicos filme/gênero entre os filmes com `vote_count` preenchido, sem repetição de um mesmo par. A expansão integral dos gêneros explica a diferença entre 4.993.591 votos contados uma vez por filme e 13.698.014 somados através dos grupos. Há 2.442 filmes com `vote_count` preenchido sem gênero extraível; eles não pertencem a grupo algum.
 
 ## Avaliação metodológica e limitações
 

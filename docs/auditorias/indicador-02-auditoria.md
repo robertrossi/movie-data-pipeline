@@ -11,6 +11,8 @@ A pergunta é qual a nota média (`vote_average`) dos filmes TMDB elegíveis em 
 
 O cálculo é a média simples das notas dos filmes que pertencem a cada gênero, arredondada a duas casas. Não pondera por `vote_count`: a interpretação é “média das notas TMDB dos filmes elegíveis”, não a média de votos individuais. Um filme multigênero aparece integralmente em cada gênero; logo, totais por gênero não são aditivos. Não há JOINs.
 
+Esta é uma escolha de unidade de análise: cada filme elegível tem peso igual, ainda que a nota TMDB de um filme possa resumir volumes de votos diferentes. Uma média ponderada por `vote_count` responderia a outra pergunta. No conjunto auditado, a diferença máxima entre essas duas fórmulas foi aproximadamente 0,591 ponto entre os gêneros.
+
 ## Consultas executadas e resultados
 
 ### Recálculo da consulta e comparação com a mart
@@ -126,6 +128,7 @@ Consulta executada: `SELECT genero, total_filmes, nota_media_tmdb FROM marts.not
 - `AVG(vote_average)` concede peso igual a cada filme elegível. Isso é coerente com a interpretação declarada, mas não equivale a média ponderada por votos, nem descreve os ratings MovieLens.
 - O corte mínimo de 50 votos exclui filmes com menos votos e os três filmes com `vote_count` nulo. Os três `vote_average` nulos também são inelegíveis; os resultados não especificam a interseção entre esses nulos. O critério é explícito e deve acompanhar a interpretação.
 - Seis filmes elegíveis não tiveram gênero extraível pela regex. Isso reduz a cobertura de gênero; os grupos não representam todos os filmes elegíveis.
+- A expansão distribui cada filme integralmente por todos os gêneros extraídos. Os grupos não são exclusivos; somar suas quantidades não produz uma contagem única de filmes.
 - Há gêneros com poucos filmes (por exemplo, Foreign com 3), tornando suas médias menos estáveis. Isso é limitação interpretativa, não erro do cálculo.
 - O recálculo da fonte e a mart coincidem integralmente.
 
