@@ -18,6 +18,8 @@
 
 ![Ruff](https://img.shields.io/badge/Qualidade-Ruff-D7FF64?logo=ruff&logoColor=black)
 
+[![CI](https://github.com/robertrossi/movie-data-pipeline/actions/workflows/ci.yml/badge.svg)](https://github.com/robertrossi/movie-data-pipeline/actions/workflows/ci.yml)
+
 ## Sumário
 
 - [Acesse o projeto](#acesse-o-projeto)
@@ -34,6 +36,7 @@
 - [Executar localmente](#executar-localmente)
 - [Relatório HTML](#relatorio-html)
 - [Testes e qualidade](#testes-e-qualidade)
+- [Integração Contínua (CI)](#integração-contínua-ci)
 - [Dados de origem](#dados-de-origem)
 - [Documentação e volumes registrados](#documentacao-e-volumes-registrados)
 - [Estrutura do projeto](#estrutura-do-projeto)
@@ -266,6 +269,19 @@ Na validação registrada em 03/11/2026, **75 testes passaram** e a cobertura to
 | `pipeline/transformacao.py` | 90% |
 | `painel.py` | 97% |
 | `relatorio.py` | 96% |
+
+## Integração Contínua (CI)
+
+O GitHub Actions executa automaticamente os testes e as verificações de qualidade em Pull Requests direcionados à branch `main`. O workflow `.github/workflows/ci.yml` usa Ubuntu 24.04, Python 3.13.5 e uv 0.13.6, com permissão `contents: read`.
+
+As etapas são executadas nesta ordem:
+
+1. Instalar as dependências travadas: `uv sync --locked --all-groups`.
+2. Executar os testes e gerar cobertura: `uv run --locked pytest --cov`.
+3. Verificar o lint: `uv run --locked ruff check .`.
+4. Verificar a formatação: `uv run --locked ruff format --check .`.
+
+A primeira execução do workflow, após a integração pelo PR #16, foi concluída com sucesso em 51 segundos.
 
 ## Dados de origem
 
