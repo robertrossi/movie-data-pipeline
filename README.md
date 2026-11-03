@@ -2,6 +2,12 @@
 
 **Da exploração de dados cinematográficos a indicadores analíticos interativos**
 
+### 📚 Documentação completa
+
+Acesse a documentação técnica do projeto, com detalhes sobre arquitetura, fontes de dados, modelagem, pipeline de transformação, indicadores de negócio, testes, qualidade e aplicações.
+
+➡️ [Acessar documentação completa](https://robertrossi.github.io/movie-data-pipeline/)
+
 [![Dashboard Streamlit](https://img.shields.io/badge/🚀_Dashboard-Streamlit-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)](https://movie-data-pipeline-aufci3bj3y77rd7rwijzbu.streamlit.app/)
 
 [![Relatório HTML](https://img.shields.io/badge/📊_Relatório-HTML-4169E1?style=for-the-badge)](https://robertrossi.github.io/movie-data-pipeline/relatorio.html)
