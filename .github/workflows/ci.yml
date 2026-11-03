@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: Testes e qualidade
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Baixar o repositório
+        uses: actions/checkout@v7
+
+      - name: Configurar Python 3.13.5
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.13.5"
+
+      - name: Instalar uv
+        uses: astral-sh/setup-uv@v10.3.3
+        with:
+          version: "0.13.6"
+
+      - name: Instalar dependências travadas
+        run: uv sync --locked --all-groups
+
+      - name: Executar testes e cobertura
+        run: uv run --locked pytest --cov
+
+      - name: Verificar lint com Ruff
+        run: uv run --locked ruff check .
+
+      - name: Verificar formatação com Ruff
+        run: uv run --locked ruff format --check .
