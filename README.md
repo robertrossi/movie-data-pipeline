@@ -2,6 +2,12 @@
 
 Pipeline de Engenharia de Dados para transformar metadados cinematográficos e avaliações MovieLens em indicadores analíticos DuckDB, apresentados por um dashboard Streamlit e um relatório HTML.
 
+## Acesse o projeto
+
+**Relatório analítico:** [Acessar relatório HTML](https://robertrossi.github.io/movie-data-pipeline/relatorio.html)
+
+O relatório estático apresenta quatro seções e 14 gráficos. Ele não possui filtros interativos, seletores de ano ou gênero, nem pôsteres de filmes.
+
 > O projeto é executado localmente. Não é uma plataforma hospedada nem um serviço de produção.
 
 ## Sobre o projeto
