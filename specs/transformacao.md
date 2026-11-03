@@ -16,12 +16,16 @@ Serão transformadas as seguintes tabelas:
 | `raw.avaliacoes` | `refined.avaliacoes` | Indicadores baseados nas avaliações MovieLens. |
 | `raw.links` | `refined.links` | Relacionamento entre identificadores MovieLens e TMDB. |
 
+### Relação com o escopo dos indicadores
+
+Esta especificação foi originalmente elaborada para apoiar 10 indicadores. Posteriormente, o projeto evoluiu para 11 indicadores. O indicador 11 utiliza `refined.filmes`, `refined.avaliacoes` e `refined.links`, tabelas já previstas nesta especificação. Sua inclusão não exige novas tabelas refined nem altera o escopo das transformações documentadas aqui.
+
 Ficam fora do escopo desta versão:
 
-- `raw.creditos`: não é utilizada nos dez indicadores atuais.
-- `raw.palavras_chave`: não é utilizada nos dez indicadores atuais.
+- `raw.creditos`: não é transformada para refined e não é utilizada pelas 11 consultas SQL atuais.
+- `raw.palavras_chave`: não é transformada para refined e não é utilizada pelas 11 consultas SQL atuais.
 
-O escopo poderá ser revisto caso novos indicadores exijam essas tabelas.
+O escopo poderá ser revisto caso indicadores futuros exijam essas tabelas.
 
 ## 3. Nomes das colunas
 

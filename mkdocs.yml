@@ -1,0 +1,82 @@
+site_name: Movie Data Pipeline
+site_description: Documentação técnica do projeto Cinema Analytics.
+site_url: https://robertrossi.github.io/movie-data-pipeline/
+
+theme:
+  name: material
+  language: pt-BR
+  features:
+    - navigation.sections
+    - navigation.top
+    - content.code.copy
+
+plugins:
+  - search:
+      lang: pt
+
+nav:
+  - Apresentação: index.md
+  - Arquitetura e engenharia de dados:
+      - Visão geral: arquitetura/visao-geral.md
+      - Fluxo de dados: arquitetura/fluxo-dados.md
+      - Camadas: arquitetura/camadas.md
+      - Módulos Python: arquitetura/modulos.md
+  - Dados e modelagem:
+      - Fontes: dados/fontes.md
+      - Dicionário de dados: dados/dicionario.md
+      - Granularidade e relacionamentos: dados/modelagem.md
+      - Transformação: dados/transformacao.md
+      - Resumo das evidências: dados/evidencias.md
+      - Evidências completas: evidencias_transformacao.md
+  - Indicadores de negócio:
+      - Visão geral: indicadores/index.md
+      - Indicador 01: indicadores/indicador-01.md
+      - Indicador 02: indicadores/indicador-02.md
+      - Indicador 03: indicadores/indicador-03.md
+      - Indicador 04: indicadores/indicador-04.md
+      - Indicador 05: indicadores/indicador-05.md
+      - Indicador 06: indicadores/indicador-06.md
+      - Indicador 07: indicadores/indicador-07.md
+      - Indicador 08: indicadores/indicador-08.md
+      - Indicador 09: indicadores/indicador-09.md
+      - Indicador 10: indicadores/indicador-10.md
+      - Indicador 11: indicadores/indicador-11.md
+  - Operação:
+      - Instalação: operacao/instalacao.md
+      - Execução: operacao/execucao.md
+      - Banco e snapshot: operacao/banco-snapshot.md
+  - Qualidade e CI:
+      - Testes e cobertura: qualidade/testes.md
+      - Integração contínua: qualidade/ci.md
+  - Aplicações:
+      - Dashboard Streamlit: aplicacoes/dashboard.md
+      - Relatório HTML: aplicacoes/relatorio.md
+  - Auditorias metodológicas:
+      - Auditoria geral: auditorias/auditoria-geral.md
+      - Indicador 01: auditorias/indicador-01-auditoria.md
+      - Indicador 02: auditorias/indicador-02-auditoria.md
+      - Indicador 03: auditorias/indicador-03-auditoria.md
+      - Indicador 04: auditorias/indicador-04-auditoria.md
+      - Indicador 05: auditorias/indicador-05-auditoria.md
+      - Indicador 06: auditorias/indicador-06-auditoria.md
+      - Indicador 07: auditorias/indicador-07-auditoria.md
+      - Indicador 08: auditorias/indicador-08-auditoria.md
+      - Indicador 09: auditorias/indicador-09-auditoria.md
+      - Indicador 10: auditorias/indicador-10-auditoria.md
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
