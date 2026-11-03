@@ -51,8 +51,9 @@ import re
 import sys
 from pathlib import Path
 
-from pipeline import db
+import duckdb
 
+from pipeline import db
 
 _PASTA_MARTS = Path(__file__).resolve().parent.parent / "sql" / "marts"
 _PREFIXO_NUMERICO = re.compile(r"^\d{2}_(.+)$")
@@ -238,9 +239,7 @@ def main(argv=None) -> int:
 
             tabela_sql = f"marts.{_identificador(destino)}"
             try:
-                con.execute(
-                    f"CREATE OR REPLACE TABLE {tabela_sql} AS {consulta}"
-                )
+                con.execute(f"CREATE OR REPLACE TABLE {tabela_sql} AS {consulta}")
                 if not _tabela_existe(con, destino):
                     raise RuntimeError(f"Tabela marts.{destino} não foi criada")
                 quantidade = con.execute(
@@ -263,17 +262,17 @@ def main(argv=None) -> int:
         for destino, quantidade in resultados:
             print(f"✓ marts.{destino} {quantidade:,}".replace(",", ".") + " linhas")
         print(
-            f"Concluído: {len(resultados)} marts, "
-            f"{total_linhas:,}".replace(",", ".")
+            f"Concluído: {len(resultados)} marts, {total_linhas:,}".replace(",", ".")
             + " linhas no total."
         )
         return 0
-    except Exception as erro:
+    # Keep this broad so every failure during publication attempts a rollback.
+    except Exception as erro:  # noqa: BLE001
         if con is not None and transacao_aberta:
             try:
                 con.execute("ROLLBACK")
                 transacao_aberta = False
-            except Exception as erro_rollback:
+            except duckdb.Error as erro_rollback:
                 print(f"Falha ao reverter a transação: {erro_rollback}")
         print(erro)
         return 1

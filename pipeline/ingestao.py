@@ -29,7 +29,11 @@ def main():
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
 
-    faltantes = [arquivo for arquivo, _ in ARQUIVOS_TABELAS if not (db.PASTA_RAW / arquivo).is_file()]
+    faltantes = [
+        arquivo
+        for arquivo, _ in ARQUIVOS_TABELAS
+        if not (db.PASTA_RAW / arquivo).is_file()
+    ]
     if faltantes:
         print(f"Arquivos ausentes em {db.PASTA_RAW}:")
         for arquivo in faltantes:

@@ -1,4 +1,3 @@
-
 """Conexão e gravação do banco do pipeline.
 
 `PASTA_RAW` e o arquivo DuckDB são ancorados na raiz do projeto para que
@@ -57,4 +56,3 @@ def gravar(con, df, schema, tabela):
         return resultado[0][0]
     finally:
         con.unregister(nome_registro)
-

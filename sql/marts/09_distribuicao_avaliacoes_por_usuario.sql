@@ -15,14 +15,13 @@ usuarios_classificados AS (
         userId,
         total_avaliacoes,
         CASE
-            WHEN total_avaliacoes BETWEEN 1 AND 10 THEN '01-10'
-            WHEN total_avaliacoes BETWEEN 11 AND 50 THEN '11-50'
-            WHEN total_avaliacoes BETWEEN 51 AND 100 THEN '51-100'
+            WHEN total_avaliacoes = 1 THEN '1'
+            WHEN total_avaliacoes BETWEEN 2 AND 10 THEN '2-10'
+            WHEN total_avaliacoes BETWEEN 11 AND 30 THEN '11-30'
+            WHEN total_avaliacoes BETWEEN 31 AND 100 THEN '31-100'
             WHEN total_avaliacoes BETWEEN 101 AND 500 THEN '101-500'
             WHEN total_avaliacoes BETWEEN 501 AND 1000 THEN '501-1000'
-            WHEN total_avaliacoes BETWEEN 1001 AND 5000 THEN '1001-5000'
-            WHEN total_avaliacoes BETWEEN 5001 AND 10000 THEN '5001-10000'
-            ELSE '10000+'
+            ELSE '>1000'
         END AS faixa_avaliacoes
     FROM avaliacoes_por_usuario
 )

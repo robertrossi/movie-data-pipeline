@@ -97,8 +97,9 @@ from __future__ import annotations
 
 import sys
 
-from pipeline import db
+import duckdb
 
+from pipeline import db
 
 RAW_TABLES = ("filmes", "avaliacoes", "links")
 
@@ -312,7 +313,9 @@ def _check_expected_columns(columns_by_table: dict[str, list[str]]) -> None:
     for table, types in TARGET_TYPES.items():
         missing = sorted(set(types) - set(columns_by_table[table]))
         if missing:
-            errors.append(f"raw.{table}: colunas esperadas ausentes: {', '.join(missing)}")
+            errors.append(
+                f"raw.{table}: colunas esperadas ausentes: {', '.join(missing)}"
+            )
     missing_film_columns = sorted(
         set(FILM_RAW_COLUMNS) - set(columns_by_table["filmes"])
     )
@@ -326,7 +329,9 @@ def _check_expected_columns(columns_by_table: dict[str, list[str]]) -> None:
 
 
 def _count_rows(con, schema: str, table: str) -> int:
-    return con.execute(f"SELECT COUNT(*) FROM {_qualified(schema, table)}").fetchone()[0]
+    return con.execute(f"SELECT COUNT(*) FROM {_qualified(schema, table)}").fetchone()[
+        0
+    ]
 
 
 def _rowid_list_sql(rowids: tuple[int, ...] | list[int]) -> str:
@@ -455,9 +460,7 @@ def _conversion_and_null_issues(
         )
 
     source_filter = (
-        _film_exclusion(
-            "", excluded_rowids=excluded_rowids, excluded_ids=excluded_ids
-        )
+        _film_exclusion("", excluded_rowids=excluded_rowids, excluded_ids=excluded_ids)
         if table == "filmes"
         else _rowid_exclusion("", excluded_rowids)
     )
@@ -523,9 +526,7 @@ def _duplicate_issues(
     )
     record_columns = ", ".join(f"n.{_q(name)}" for name in columns)
     source_filter = (
-        _film_exclusion(
-            "", excluded_rowids=excluded_rowids, excluded_ids=excluded_ids
-        )
+        _film_exclusion("", excluded_rowids=excluded_rowids, excluded_ids=excluded_ids)
         if table == "filmes"
         else _rowid_exclusion("", excluded_rowids)
     )
@@ -699,12 +700,10 @@ def _print_summary(
             )
         for column, count in null_counts[table].items():
             print(
-                f"Nulos preservados em refined.{table}.{column}: "
-                f"{_format_count(count)}"
+                f"Nulos preservados em refined.{table}.{column}: {_format_count(count)}"
             )
     print(
-        "Registros isolados em rejected.filmes: "
-        f"{_format_count(len(rejected_records))}"
+        f"Registros isolados em rejected.filmes: {_format_count(len(rejected_records))}"
     )
     for record in rejected_records:
         print(
@@ -745,9 +744,7 @@ def main() -> int:
         _validate_rejected_film_locators(con)
         _validate_divergent_film_ids(con)
 
-        before_counts = {
-            table: _count_rows(con, "raw", table) for table in RAW_TABLES
-        }
+        before_counts = {table: _count_rows(con, "raw", table) for table in RAW_TABLES}
         excluded_film_rowids = MALFORMED_FILM_ROWIDS
         excluded_film_ids = DIVERGENT_FILM_IDS
         identical_duplicates = _identical_film_duplicates(
@@ -760,9 +757,7 @@ def main() -> int:
                 con,
                 table,
                 columns_by_table[table],
-                excluded_rowids=(
-                    excluded_film_rowids if table == "filmes" else ()
-                ),
+                excluded_rowids=(excluded_film_rowids if table == "filmes" else ()),
                 excluded_ids=excluded_film_ids if table == "filmes" else (),
             )
             for table in RAW_TABLES
@@ -772,9 +767,7 @@ def main() -> int:
                 con,
                 table,
                 columns_by_table[table],
-                excluded_rowids=(
-                    excluded_film_rowids if table == "filmes" else ()
-                ),
+                excluded_rowids=(excluded_film_rowids if table == "filmes" else ()),
                 excluded_ids=excluded_film_ids if table == "filmes" else (),
             )
             for table in RAW_TABLES
@@ -825,15 +818,18 @@ def main() -> int:
             rejected_null_counts,
         )
         return 0
-    except Exception as error:
+    # Keep this broad so every failure during publication attempts a rollback.
+    except Exception as error:  # noqa: BLE001
         rollback_error = None
         if con is not None and transaction_open:
             try:
                 con.execute("ROLLBACK")
-            except Exception as rollback_exception:
+            except duckdb.Error as rollback_exception:
                 rollback_error = rollback_exception
         if published:
-            print(f"As tabelas foram publicadas, mas houve falha ao relatar o resultado: {error}")
+            print(
+                f"As tabelas foram publicadas, mas houve falha ao relatar o resultado: {error}"
+            )
         elif rollback_error is not None:
             print(
                 f"Falha na transformação: {error}; "

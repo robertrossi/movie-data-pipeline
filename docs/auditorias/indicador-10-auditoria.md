@@ -9,6 +9,8 @@
 
 Esta auditoria avaliou a integridade do grão, das chaves e dos relacionamentos entre `refined.avaliacoes`, `refined.links` e `refined.filmes`; a extração e expansão de gêneros; e a fórmula da média por gênero. O grão MovieLens é `movieId`. Filmes multigênero participam de cada gênero armazenado, e filmes MovieLens distintos não devem ser consolidados quando compartilham um `tmdbId`.
 
+Os valores de nota usados são `rating` de MovieLens. Os metadados TMDB entram para localizar os gêneros; `vote_average` e `vote_count` TMDB não são combinados com os ratings MovieLens.
+
 As verificações previamente realizadas de ausência de duplicidades em `refined.links.movieId` e `refined.filmes.id` foram consideradas concluídas e não repetidas. A auditoria foi investigativa: não alterou SQL, dados ou tabelas e não executou o pipeline.
 
 ## 2. Ambiente e método
@@ -35,6 +37,8 @@ A consulta auditada executa estas etapas:
 2. `filmes_com_avaliacoes`: junta os resultados a `refined.links` por `movieId` e a `refined.filmes` por `links.tmdbId = filmes.id`, com `INNER JOIN`; exige `tmdbId IS NOT NULL`.
 3. `generos_extraidos`: expande `genres` com `UNNEST(REGEXP_EXTRACT_ALL(genres, '''name'': ''([^'']+)'''))`, e limpa o texto com `TRIM(REPLACE(REPLACE(genero, '''name'': ''', ''), '''', ''))`.
 4. O resultado agrupa por gênero, calcula `COUNT(DISTINCT movieId)`, soma avaliações e calcula `ROUND(SUM(nota_media * total_avaliacoes) / SUM(total_avaliacoes), 3)`.
+
+Como a CTE inicial contém uma média por `movieId`, o produto pela quantidade de ratings e a divisão pela soma dessas quantidades tornam a média por gênero equivalente à média direta de cada rating MovieLens associado ao gênero. Cada `movieId` mantém seu próprio peso; `movieId`s diferentes que compartilham `tmdbId` não são consolidados.
 
 O SQL declara uma linha por gênero no resultado; um filme multigênero gera uma linha para cada par filme/gênero. Portanto, as contagens e somas entre gêneros não são aditivas.
 
@@ -264,3 +268,11 @@ Nenhum problema crítico foi identificado. Não foi observada quebra do grão, m
 **APROVADO COM RESSALVAS.** A média ponderada está matematicamente correta e coincide com a média direta dos ratings para todos os 20 gêneros. O grão `movieId` é preservado pelos relacionamentos, os JOINs não multiplicam linhas antes da expansão, os pares `movieId`/gênero não se repetem e filmes multigênero são contabilizados em cada grupo correspondente.
 
 As ressalvas são de cobertura: 400 IDs não obtêm correspondência completa em `refined.filmes`, e 2.384 filmes correspondentes não têm gênero extraível. Em conjunto, 75.329 ratings (aproximadamente 0,29%) ficam fora dos grupos. Essas limitações devem acompanhar a interpretação do indicador.
+
+## Atualização da revisão metodológica — 3 de novembro de 2026
+
+Foi repetida uma validação somente leitura da consulta de referência contra `marts.nota_media_movielens_por_genero`, usando as mesmas junções, expansão de gêneros e arredondamento. A consulta e a MART retornaram **20 linhas**, com **0 diferenças** em `referência EXCEPT ALL MART` e **0 diferenças** em `MART EXCEPT ALL referência`.
+
+A equivalência entre a ponderação e a média direta foi confirmada para os 20 gêneros: diferença máxima absoluta **0,0** e nenhuma divergência nas contagens. As chaves continuam únicas (`links.movieId`: 45.843 linhas e 45.843 IDs; `filmes.id`: 45.420 linhas e 45.420 IDs). O grão de ratings agregados por `movieId` passou de 45.115 para 44.715 IDs após a correspondência com filme, sem multiplicação pelos JOINs.
+
+As exclusões devem ser lidas em duas unidades: **400 `movieId`** não obtêm vínculo TMDB completo (213 com `tmdbId` nulo e 187 sem filme correspondente), enquanto **2.384 filmes vinculados** não têm gênero extraível. Juntas, essas condições deixam **75.329 ratings** sem atribuição a gênero, aproximadamente **0,29%** dos 26.024.289 ratings. Não se deve equiparar a contagem de filmes excluídos à contagem de ratings excluídos.
