@@ -19,6 +19,7 @@ def test_conexao_padrao_cria_e_permite_escrita_em_banco_temporario(
 ):
     database = tmp_path / "padrao.duckdb"
     monkeypatch.setattr(db, "_ARQUIVO_BANCO", database)
+    monkeypatch.delenv("MOVIE_DATA_DB_PATH", raising=False)
 
     con = db.conectar()
     try:
@@ -28,6 +29,22 @@ def test_conexao_padrao_cria_e_permite_escrita_em_banco_temporario(
         con.close()
 
     assert database.is_file()
+
+
+def test_variavel_de_ambiente_seleciona_banco_alternativo_somente_leitura(
+    tmp_path, monkeypatch
+):
+    database = tmp_path / "alternativo.duckdb"
+    _create_database(database)
+    monkeypatch.setenv("MOVIE_DATA_DB_PATH", str(database))
+
+    con = db.conectar(must_exist=True, read_only=True)
+    try:
+        assert con.execute("SELECT valor FROM amostra").fetchone() == (42,)
+        with pytest.raises(duckdb.Error):
+            con.execute("CREATE TABLE bloqueada AS SELECT 1")
+    finally:
+        con.close()
 
 
 def test_must_exist_recusa_banco_inexistente(tmp_path, monkeypatch):

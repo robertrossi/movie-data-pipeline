@@ -1,7 +1,8 @@
 """Conexão e gravação do banco do pipeline.
 
-`PASTA_RAW` e o arquivo DuckDB são ancorados na raiz do projeto para que
-chamadas feitas de outros diretórios sempre encontrem os mesmos dados.
+`PASTA_RAW` e o caminho padrão do DuckDB são ancorados na raiz do projeto para
+que chamadas feitas de outros diretórios encontrem os mesmos dados. O caminho
+do banco pode ser substituído explicitamente por `MOVIE_DATA_DB_PATH`.
 Este módulo só oferece operações genéricas de banco: as etapas decidem como
 ler, tipar e nomear os dados, evitando regras de negócio escondidas aqui.
 `conectar` não mantém conexão global; quem abriu a conexão também a fecha.
@@ -9,12 +10,21 @@ ler, tipar e nomear os dados, evitando regras de negócio escondidas aqui.
 resultado reflita o banco e reexecuções não dupliquem linhas.
 """
 
+import os
 from pathlib import Path
 
 import duckdb
 
 PASTA_RAW = Path(__file__).resolve().parent.parent / "raw"
 _ARQUIVO_BANCO = Path(__file__).resolve().parent.parent / "movie_data.duckdb"
+
+
+def _caminho_banco() -> Path:
+    """Retorna o caminho configurado ou o banco padrão ancorado no projeto."""
+    configurado = os.environ.get("MOVIE_DATA_DB_PATH")
+    if configurado and configurado.strip():
+        return Path(configurado).expanduser()
+    return _ARQUIVO_BANCO
 
 
 def conectar(*, must_exist=False, read_only=False):
@@ -26,11 +36,12 @@ def conectar(*, must_exist=False, read_only=False):
     existência do banco também é obrigatória, para evitar a criação acidental
     de um arquivo vazio para consultas.
     """
-    if (must_exist or read_only) and not _ARQUIVO_BANCO.is_file():
-        raise FileNotFoundError(f"Banco DuckDB não encontrado: {_ARQUIVO_BANCO}")
+    arquivo_banco = _caminho_banco()
+    if (must_exist or read_only) and not arquivo_banco.is_file():
+        raise FileNotFoundError(f"Banco DuckDB não encontrado: {arquivo_banco}")
     if read_only:
-        return duckdb.connect(str(_ARQUIVO_BANCO), read_only=True)
-    return duckdb.connect(str(_ARQUIVO_BANCO))
+        return duckdb.connect(str(arquivo_banco), read_only=True)
+    return duckdb.connect(str(arquivo_banco))
 
 
 def criar_schema(con, nome):
